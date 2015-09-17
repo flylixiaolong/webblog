@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 #-*- coding:utf-8 -*-
 
+import functools
+
 class _Engine(object):
     def __init__(self,connect):
         self.connect = connect
@@ -61,6 +63,14 @@ class _ConnectionCtx(object):
 def connection():
     return _ConnectionCtx()
 
+def with_connection(func):
+    @functools.wraps(func)    
+    def wrapper(*args,**kw):
+        print 'call %s:' % func.__name__
+        with _ConnectionCtx():
+            return fun(*args,**kw)
+    return wrapper
+
 class _TransactionCtx(object):
     def __enter__(self):
         global _db_ctx
@@ -93,6 +103,15 @@ class _TransactionCtx(object):
         global _db_ctx
         _db_ctx.connection.rollback()
 
-def transation():
+def transaction():
     return _TransactionCtx()
+
+def with_tarnsaction(func):
+    @functolls.wraps(func)
+    def wrapper(*args,**kw):
+        print 'call %s:' % func.__name__
+        with _TransactionCtx():
+            return func(*args,*kw)
+    return wrapper
+
 
