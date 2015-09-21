@@ -36,7 +36,7 @@ class Dict(dict):
     def __init__(self,names=(),values=(),**kw):
         super(Dict,self).__init__(**kw)
         for key,value in zip(names,values):
-            self[key] = values
+            self[key] = value
     def __getattr__(self,key):
         try:
             return self[key]
@@ -44,7 +44,7 @@ class Dict(dict):
             raise AttributeError(r"'Dict' object has no attribute %s" % key)
     def __setattr__(self,key,value):
         self[key] = value
-        
+
 def next_id(t=None):
     if t is None:
         t = time.time()
@@ -56,7 +56,7 @@ def _profiling(start,sql=''):
         logging.warning('[PROFILING] [DB] %s: %s' % (t,sql))
     else:
         logging.info('[PROFILING] [DB] %s: %s' % (t,sql))
-    
+
 class DBError(Exception):
     pass
 
@@ -104,7 +104,7 @@ class _LasyConnection(object):
             connection = self.connection
             self.connection = None
             connection.close()
-    
+
 class _DbCtx(threading.local):
     def __init__(self):
         self.connection = None
@@ -139,7 +139,7 @@ def connection():
     return _ConnectionCtx()
 
 def with_connection(func):
-    @functools.wraps(func)    
+    @functools.wraps(func)
     def wrapper(*args,**kw):
         print 'call %s:' % func.__name__
         with _ConnectionCtx():
@@ -231,7 +231,7 @@ def select_one(sql, *args):
     u'Alice'
     '''
     return _select(sql, True, *args)
-    
+
 @with_connection
 def select_int(sql, *args):
     '''

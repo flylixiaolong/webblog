@@ -101,7 +101,7 @@ class ModelMetaclass(type):
                        raise TypeError('Cannot define more than 1 primary key in class %s' % name)
                     if value.updatable:
                        logging.warning('NOTE: change primary key to non-updatable.')
-                       value.updatable = False 
+                       value.updatable = False
                     if value.nullable:
                        logging.warning('NOTE: change primary key to non-nullable.')
                        value.nullable = False
@@ -136,26 +136,26 @@ class Model(dict):
 
     @classmethod
     def get(cls,pk):
-        item = db.select_one('select * from %s where %s=?' % (cls.__table__,cls.primary_key__.name), pk)
+        item = db.select_one('select * from `%s` where %s=?' % (cls.__table__,cls.primary_key__.name), pk)
         return cls(**item) if item else None
     @classmethod
     def find_first(cls,where,*args):
-        item = db.select_one('select * from %s where %s' % (cls.__table__,where),*args)
-        return [cls(**item) if item  else None]
+        item = db.select_one('select * from `%s` %s' % (cls.__table__,where),*args)
+        return cls(**item) if item else None
     @classmethod
     def find_all(cls,*args):
-        items = db.select('select * from %s' % cls.__table__)
+        items = db.select('select * from `%s`' % cls.__table__)
         return [cls(**d) for d in items]
     @classmethod
     def find_by(cls,where,*args):
-        items = db.select('select * from %s where %s' % (cls.__table__,where),*args)
+        items = db.select('select * from `%s` where %s' % (cls.__table__,where),*args)
         return [cls(**d) for d in items]
     @classmethod
     def count_all(cls):
-        return db.select_int('select count (%s) from %s' % (cls.__primary_key__.name,cls.__table))
+        return db.select_int('select count (%s) from `%s`' % (cls.__primary_key__.name,cls.__table))
     @classmethod
     def cont_by(cls,where,*args):
-        return db.select_int('select count (%s) form %s %s' % (cls.__primary_key.name,cls.__table__,where), *args)
+        return db.select_int('select count (%s) form `%s` %s' % (cls.__primary_key.name,cls.__table__,where), *args)
     def update(self):
         self.pre_update and self.pre_update()
         items = []
@@ -171,7 +171,7 @@ class Model(dict):
                 args.append(arg)
         pk = self.__primary_key__.name
         args.append(getattr(self,pk))
-        db.update('update %s set %s where %s = ?' % (self.__table__,','.join(items),pk),*args)
+        db.update('update `%s` set %s where %s = ?' % (self.__table__,','.join(items),pk),*args)
         return self
     def insert(self):
         self.pre_insert and self.pre_insert()
@@ -187,5 +187,5 @@ class Model(dict):
         self.pre_delete and self.pre_delete()
         pd = self.__primary_key__.name
         args = (getattr(self,pk),)
-        db.update('delete from %s where %s = ?' % (self.__table__,pk),*args)
+        db.update('delete from `%s` where %s = ?' % (self.__table__,pk),*args)
         return self
