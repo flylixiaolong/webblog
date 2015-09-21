@@ -12,8 +12,8 @@ class Field(object):
         self.primary_key = kw.get('primary_key',False)
         self.nullable = kw.get('nullable',False)
         self.updatable = kw.get('updatable',True)
-        self.insertable = lw.get('insertable',True)
-        self.dd1 = kw.get('dd1','')
+        self.insertable = kw.get('insertable',True)
+        self.ddl = kw.get('dd1','')
         self._order = Field._count
         Field._count = Field._count + 1
     @property
@@ -50,7 +50,7 @@ class BooleanField(Field):
             kw['default'] = False
         if not 'ddl' in kw:
             kw['ddl'] = 'bool'
-    super(BooleanField, self).__init__(**kw)
+        super(BooleanField, self).__init__(**kw)
 
 class TextField(Field):
     def __init__(self, **kw):
@@ -58,7 +58,7 @@ class TextField(Field):
             kw['default'] = ''
         if not 'ddl' in kw:
             kw['ddl'] = 'text'
-    super(TextField, self).__init__(**kw)
+        super(TextField, self).__init__(**kw)
 
 class BlobField(Field):
     def __init__(self, **kw):
@@ -68,10 +68,16 @@ class BlobField(Field):
             kw['ddl'] = 'blob'
         super(BlobField, self).__init__(**kw)
 
+class VersionField(Field):
+    def __init__(self, name=None):
+        super(VersionField, self).__init__(name=name, default=0, ddl='bigint')
+
+_triggers = frozenset(['pre_insert', 'pre_update', 'pre_delete'])
+
 class ModelMetaclass(type):
-    def __new__(cls,name,base,attrs):
+    def __new__(cls,name,bases,attrs):
         if name == 'Model':
-            return type.__new__(cls,name,base,attrs)
+            return type.__new__(cls,name,bases,attrs)
         #注意cls表示当前类，所以cls.subclasses是当前类的属性
         #即ModelMetaclass的属性，而不是实例属性
         if not hasattr(cls,'subclasses'):
@@ -87,7 +93,7 @@ class ModelMetaclass(type):
             if isinstance(value,Field):
                 if not value.name:
                     value.name = key
-                logging.info('Found mapping: %s ==> %s' % (key,value)
+                logging.info('Found mapping: %s ==> %s' % (key,value))
                 #拥有主键
                 if value.primary_key:
                     #是否已经检测到了主键
@@ -100,7 +106,7 @@ class ModelMetaclass(type):
                        logging.warning('NOTE: change primary key to non-nullable.')
                        value.nullable = False
                     primary_key = value
-                mappings[s] = v
+                mappings[key] = value
         if not primary_key:
             raise TypeErrot('Primary key not defined in class: %s' % name)
         #从类属性中删除，避免访问时出现冲突
@@ -124,17 +130,17 @@ class Model(dict):
         try:
             return self[key]
         except KeyError:
-            rase AttributeError(r"'Dict' object has no attribute %s" % key)
+            raise AttributeError(r"'Dict' object has no attribute %s" % key)
     def __setattr__(self,key,value):
         self[key]=value
 
     @classmethod
     def get(cls,pk):
-        item = db.select_one('select * from %s where %s=?' % （cls.__table__,cls.primary_key__.name), pk)
+        item = db.select_one('select * from %s where %s=?' % (cls.__table__,cls.primary_key__.name), pk)
         return cls(**item) if item else None
     @classmethod
     def find_first(cls,where,*args):
-        item = db.select_one('selct * from %s where %s' % (cls.__table__,where),*args)
+        item = db.select_one('select * from %s where %s' % (cls.__table__,where),*args)
         return [cls(**item) if item  else None]
     @classmethod
     def find_all(cls,*args):
@@ -175,7 +181,7 @@ class Model(dict):
                 if not hasattr(self,key):
                     setattr(self,key,value.default)
                 params[value.name] = getattr(self,key)
-        db.insert('%s' %self.__table__,**params)
+        db.insert('%s' % self.__table__,**params)
         return self
     def delete(self):
         self.pre_delete and self.pre_delete()

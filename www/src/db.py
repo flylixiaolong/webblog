@@ -54,7 +54,7 @@ def _profiling(start,sql=''):
     t = time.time() - start
     if t > 0.1:
         logging.warning('[PROFILING] [DB] %s: %s' % (t,sql))
-    else
+    else:
         logging.info('[PROFILING] [DB] %s: %s' % (t,sql))
     
 class DBError(Exception):
@@ -77,22 +77,23 @@ def create_engine(user,password,database,host='127.0.0.1',port=3306,**kw):
     if engine is not None:
         raise DBError ('Engine is already initialized.')
     params = dict(user=user,password=password,database=database,host=host,port=port)
-    defaults = dict(user_unicode=True,charset='utf8',collation='utf8_general_ci',autocommit=False)
-    for key,value in defaults.itertems():
+    defaults = dict(use_unicode=True,charset='utf8',collation='utf8_general_ci',autocommit=False)
+    for key,value in defaults.iteritems():
         params[key] = kw.pop(key,value)
     params.update(kw)
     params['buffered'] = True
-    engin = _Engine(lambda: mysql.connector.connect(**params))
-    logging.info('Init mysql engine <%s> ok.' % hex (id(engine()))):w
+    engine = _Engine(lambda: mysql.connector.connect(**params))
+    logging.info('Init mysql engine <%s> ok.' % hex (id(engine)))
 
 class _LasyConnection(object):
     def __init__(self):
         self.connection = None
     def cursor(self):
         global engine
-        if self.connection = None
+        if self.connection == None:
             connection = engine.connect()
-            self.connection = connection()
+            logging.info('open connection <%s>...' % hex(id(connection)))
+            self.connection = connection
         return self.connection.cursor()
     def commit(self):
         self.connection.commit()
@@ -122,13 +123,13 @@ class _DbCtx(threading.local):
 _db_ctx = _DbCtx()
 
 class _ConnectionCtx(object):
-   def __enter__(self):
-       global _db_ctx
-       self.should_cleanup = False
-       if not _db_ctx.is_init():
-           _db_ctx.init()
-           self.should_cleanup = True
-       return self
+    def __enter__(self):
+        global _db_ctx
+        self.should_cleanup = False
+        if not _db_ctx.is_init():
+            _db_ctx.init()
+            self.should_cleanup = True
+        return self
     def __exit__(self,exctype,excvalue,tracebach):
        global _db_ctx
        if self.should_cleanup:
@@ -142,7 +143,7 @@ def with_connection(func):
     def wrapper(*args,**kw):
         print 'call %s:' % func.__name__
         with _ConnectionCtx():
-            return fun(*args,**kw)
+            return func(*args,**kw)
     return wrapper
 
 class _TransactionCtx(object):
@@ -158,11 +159,11 @@ class _TransactionCtx(object):
         global _db_ctx
         _db_ctx.transactions = _db_ctx.transactions - 1
         try:
-            if _db_ctx.transactions == 0
+            if _db_ctx.transactions == 0:
                 if exctype is None:
-                self.commit()
-            else:
-                self.rollback()
+                    self.commit()
+                else:
+                    self.rollback()
         finally:
             if self.should_cleanup:
                 _db_ctx.cleanup()
@@ -185,7 +186,7 @@ def with_tarnsaction(func):
     def wrapper(*args,**kw):
         print 'call %s:' % func.__name__
         with _TransactionCtx():
-            return func(*args,*kw)
+            return func(*args,**kw)
     return wrapper
 
 def _select(sql, first, *args):
@@ -289,9 +290,11 @@ def _update(sql, *args):
     global _db_ctx
     cursor = None
     sql = sql.replace('?', '%s')
+    print sql
     logging.info('SQL: %s, ARGS: %s' % (sql, args))
     try:
         cursor = _db_ctx.connection.cursor()
+        print sql,args
         cursor.execute(sql, args)
         r = cursor.rowcount
         if _db_ctx.transactions==0:
