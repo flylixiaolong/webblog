@@ -6,32 +6,28 @@ import functools
 
 class Dict(dict):
     '''
-    Simple dict but support access as x,y style.
-    >>> d1 = Dict()
-    >>> d1.['x'] = 100
-    >>> d1.x
-    100
-    >>> d1.y = 200
-    >>> d1['y']
-    200
-    >>> d2 = Dict(a=1,b=2,c='3')
-    >>> d2.c
-    '3'
-    >>> d2['empty']
-    Tracebach (most recent call last):
-        ...
-    KeyErrot: 'empty'
-    >>> d2.empty
+    Simple dict but also support attribute access like d.x
+
+    >>> d=Dict()
+    >>> d['a'] = 1
+    >>> d['a']
+    1
+    >>> d.b = 2
+    >>> d.b
+    2
+    >>> d
+    {'a': 1, 'b': 2}
+    >>> d['c']
     Traceback (most recent call last):
     ...
-    AttributeError: 'Dict' object has no attribute 'empty'
-    >>> d3 = Dict(('a', 'b', 'c'), (1, 2, 3))
-    >>> d3.a
-    1
-    >>> d3.b
-    2
-    >>> d3.c
-    3
+    KeyError: 'c'
+    >>> d.c
+    Traceback (most recent call last):
+    ...
+    AttributeError: 'Dict' object has no attribute c
+    >>> d1=Dict(names=['lihong','wangjun'],values=[99,100])
+    >>> d1
+    {'lihong': 99, 'wangjun': 100}
     '''
     def __init__(self,names=(),values=(),**kw):
         super(Dict,self).__init__(**kw)
@@ -46,6 +42,9 @@ class Dict(dict):
         self[key] = value
 
 def next_id(t=None):
+    '''
+    To generate the UUID (Universally Unique Identifier)
+     '''
     if t is None:
         t = time.time()
     return '%015d%s000' % (int(t * 1000), uuid.uuid4().hex)
@@ -67,11 +66,20 @@ engine = None
 
 class _Engine(object):
     def __init__(self,connect):
-        self.connect = connect
+        self._connect = connect
     def connect(self):
         return self._connect()
 
 def create_engine(user,password,database,host='127.0.0.1',port=3306,**kw):
+    '''
+    Create the Mysql connector Engine
+
+    >>> create_engine('root','123456','myblog')
+    >>> create_engine('root','123456','myblog')
+    Traceback (most recent call last):
+    ...
+    DBError: Engine is already initialized.
+    '''
     import mysql.connector
     global engine
     if engine is not None:
@@ -110,6 +118,11 @@ class _DbCtx(threading.local):
         self.connection = None
         self.transactions = 0
     def is_init(self):
+        '''
+        return True or False
+        when self.connection is None return False
+        when self.connection is not None return True
+        '''
         return not self.connection is None
     def init(self):
         self.connection = _LasyConnection()
@@ -126,6 +139,7 @@ class _ConnectionCtx(object):
     def __enter__(self):
         global _db_ctx
         self.should_cleanup = False
+        #if not init then init
         if not _db_ctx.is_init():
             _db_ctx.init()
             self.should_cleanup = True
@@ -346,3 +360,7 @@ def update(sql, *args):
     0
     '''
     return _update(sql, *args)
+
+if __name__ == '__main__':
+    import doctest
+    doctest.testmod()

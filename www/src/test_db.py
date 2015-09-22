@@ -1,7 +1,9 @@
+#!/usr/bin/env python
+#-*- coding:utf-8 -*-
 from model import User,Blog,Comment
 import db
 
-db.create_engine(user='root',password='19901030zjy',database='myblog')
+db.create_engine(user='root',password='123456',database='myblog')
 
 u = User(name = 'Test',email='fly_lxl@fixfox.com',password='123456',image='about:blank')
 
