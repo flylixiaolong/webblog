@@ -246,14 +246,14 @@ def transaction():
     ...    update_profile(900301,'Python',False)
     insert into `users` (`email`,`created_at`,`password`,`id`,`name`) values (%s,%s,%s,%s,%s) ('Python@test.org', 0, 'Python', 900301, 'Python')
     update users set password=%s where id=%s ('PYTHON', 900301)
-    >>> select_one('select * from users where id=?',900301).name
+    >>> select_one('select * from users where id=?',[900301]).name
     u'Python'
     >>> with transaction():
     ...    update_profile(900302, 'Ruby', True)
     Traceback (most recent call last):
     ...
     StandardError: will cause roolback...
-    >>> select('select * from users where id=?', 900302)
+    >>> select('select * from users where id=?', [900302])
     []
     '''
     return _TransactionCtx()
@@ -276,13 +276,13 @@ def with_tarnsaction(func):
     >>> update_profile(900303,'Php',False)
     insert into `users` (`email`,`created_at`,`password`,`id`,`name`) values (%s,%s,%s,%s,%s) ('Php@test.org', 0, 'Php', 900303, 'Php')
     update users set password=%s where id=%s ('PHP', 900303)
-    >>> select_one('select * from users where id=?',900303).name
+    >>> select_one('select * from users where id=?',[900303]).name
     u'Php'
     >>> update_profile(900304, 'Go', True)
     Traceback (most recent call last):
     ...
     StandardError: will cause roolback...
-    >>> select('select * from users where id=?', 900304)
+    >>> select('select * from users where id=?', [900304])
     []
     '''
     @functools.wraps(func)
@@ -300,7 +300,7 @@ def _select(sql, first, *args):
     logging.info('SQL: %s, ARGS: %s' % (sql, args))
     try:
         cursor = _db_ctx.connection.cursor()
-        cursor.execute(sql, args)
+        cursor.execute(sql, *args)
         if cursor.description:
             names = [x[0] for x in cursor.description]
         if first:
@@ -315,17 +315,26 @@ def _select(sql, first, *args):
 
 @with_connection
 def select_one(sql, *args):
-    # '''
-    # When first is True _select only get one item，otherwise get all items.
+    '''
+    Return one item metting the conditions.
     
-    # >>> item = select_one('select * from users where id=?', 900303)
-    # >>> item.name
-
-    # '''
+    >>> u1 = dict(id='900305', name='Java', email='Java@test.org', password='Java', created_at='0')
+    >>> insert('users',**u1)
+    insert into `users` (`email`,`created_at`,`password`,`id`,`name`) values (%s,%s,%s,%s,%s) ('Java@test.org', '0', 'Java', '900305', 'Java')
+    1
+    >>> select_one('select * from users where id=?', [900305]).name
+    u'Java'
+    '''
     return _select(sql, True, *args)
 
 @with_connection
 def select_int(sql, *args):
+    '''
+    Return the count metting the conditions.
+
+    >>> select_int('select count(*) from users')
+    3
+    '''
     d = _select(sql, True, *args)
     if len(d)!=1:
         raise MultiColumnsError('Expect only one column.')
@@ -333,6 +342,20 @@ def select_int(sql, *args):
 
 @with_connection
 def select(sql, *args):
+    '''
+    Return the list metting the conditions.
+
+    >>> u1 = dict(id='900306', name='C#', email='C#@test.org', password='C#', created_at='0')
+    >>> insert('users',**u1)
+    insert into `users` (`email`,`created_at`,`password`,`id`,`name`) values (%s,%s,%s,%s,%s) ('C#@test.org', '0', 'C#', '900306', 'C#')
+    1
+    >>> u2 = dict(id='900307', name='Matlab', email='Matlab@test.org', password='Matlab', created_at='0')
+    >>> insert('users',**u2)
+    insert into `users` (`email`,`created_at`,`password`,`id`,`name`) values (%s,%s,%s,%s,%s) ('Matlab@test.org', '0', 'Matlab', '900307', 'Matlab')
+    1
+    >>> select('select * from users',[])
+    [{u'created_at': 0.0, u'name': u'C#', u'admin': 0, u'image': u'', u'email': u'C#@test.org', u'password': u'C#', u'id': u'900306'}, {u'created_at': 0.0, u'name': u'Matlab', u'admin': 0, u'image': u'', u'email': u'Matlab@test.org', u'password': u'Matlab', u'id': u'900307'}, {u'created_at': 0.0, u'name': u'Perf', u'admin': 0, u'image': u'', u'email': u'Perf@test.org', u'password': u'Perf', u'id': u'900308'}]
+    '''
     return _select(sql, False, *args)
 
 @with_connection
@@ -356,6 +379,14 @@ def _update(sql, *args):
             cursor.close()
 
 def insert(table, **kw):
+    '''
+    Insert values in table.
+
+    >>> u1 = dict(id='900308', name='Perf', email='Perf@test.org', password='Perf', created_at='0')
+    >>> insert('users',**u1)
+    insert into `users` (`email`,`created_at`,`password`,`id`,`name`) values (%s,%s,%s,%s,%s) ('Perf@test.org', '0', 'Perf', '900308', 'Perf')
+    1
+    '''
     cols, args = zip(*kw.iteritems())
     sql = 'insert into `%s` (%s) values (%s)' % (table, ','.join(['`%s`' % col for col in cols]), ','.join(['?' for i in range(len(cols))]))
     return _update(sql, *args)
