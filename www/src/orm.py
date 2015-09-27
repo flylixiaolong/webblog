@@ -5,6 +5,14 @@ import logging,time
 import db
 
 class Field(object):
+    '''
+
+    >>> testfield=Field(name='lixiaolong',default='test',primary_key=True,dd1='bigint')
+    >>> print testfield.default
+    test
+    >>> print testfield
+    <Field:lixiaolong,,default(test),UI>
+    '''
     _count = 0
     def __init__(self, **kw):
         self.name = kw.get('name',None)
@@ -13,13 +21,12 @@ class Field(object):
         self.nullable = kw.get('nullable',False)
         self.updatable = kw.get('updatable',True)
         self.insertable = kw.get('insertable',True)
-        self.ddl = kw.get('dd1','')
+        self.ddl = kw.get('ddl','')
         self._order = Field._count
         Field._count = Field._count + 1
     @property
     def default(self):
-        d = self._default
-        return d() if callable(d) else d
+        return self._default() if callable(self._default) else self._default
     def __str__(self):
         s = ['<%s:%s,%s,default(%s),' % (self.__class__.__name__,self.name,self.ddl,self._default)]
         self.nullable and s.append('N')
@@ -189,3 +196,7 @@ class Model(dict):
         args = (getattr(self,pk),)
         db.update('delete from `%s` where %s = ?' % (self.__table__,pk),*args)
         return self
+
+if __name__=='__main__':
+    import doctest
+    doctest.testmod()
