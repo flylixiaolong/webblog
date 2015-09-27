@@ -1,12 +1,16 @@
 #!/usr/bin/env python
 #-*- coding:utf-8 -*-
 
+import logging
+logging.basicConfig(format='%(levelname)s:%(message)s')
 import time,uuid
-
 from db import next_id
 from orm import Model,StringField,BooleanField,FloatField,TextField
 
 class User(Model):
+    '''
+    >>> u = User()
+    '''
     __table__ = 'users'
     id = StringField(primary_key=True,default=next_id,ddl='varchar(50)')
     email = StringField(updatable=False,ddl='varchar(50)')
@@ -35,5 +39,10 @@ class Comment(Model):
     user_image = StringField(ddl='varchar(500)')
     content = TextField()
     created_at = FloatField(updatable=False, default=time.time)
+
+
+if __name__ == '__main__':
+    import doctest
+    doctest.testmod()
 
 

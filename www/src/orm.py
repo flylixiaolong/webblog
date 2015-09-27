@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 #-*- coding:utf-8 -*-
 
-import logging,time
+import logging
+logging.basicConfig(format='%(levelname)s:%(message)s')
+import time
 import db
 
 class Field(object):
@@ -18,7 +20,7 @@ class Field(object):
         self.name = kw.get('name',None)
         self._default = kw.get('default',None)
         self.primary_key = kw.get('primary_key',False)
-        self.nullable = kw.get('nullable',False)
+        self.nullable = kw.get('nullable',True)
         self.updatable = kw.get('updatable',True)
         self.insertable = kw.get('insertable',True)
         self.ddl = kw.get('ddl','')
@@ -82,6 +84,30 @@ class VersionField(Field):
 _triggers = frozenset(['pre_insert', 'pre_update', 'pre_delete'])
 
 class ModelMetaclass(type):
+    '''
+    This is a Metaclass to create class.When Createing class name is
+    Model then return the class not modified, otherwise return the
+    modified the class and return it.
+
+    >>> class Model(object):
+    ...     __metaclass__ = ModelMetaclass
+    ...     def __str__(self):
+    ...         return ('%s' % self.__mappings__['id'])
+    >>> c1 = Model()
+    >>> print c1
+    Traceback (most recent call last):
+    ...
+    AttributeError: 'Model' object has no attribute '__mappings__'
+    >>> class User(Model):
+    ...     id = StringField(name='name',primary_key=True)
+    ...     def __init__(self, arg):
+    ...         super(User, self).__init__()
+    ...         self.arg = arg
+    ...
+    >>> c2 = User('lixioalong')
+    >>> print c2
+    <StringField:name,varchar(255),default(),I>
+    '''
     def __new__(cls,name,bases,attrs):
         if name == 'Model':
             return type.__new__(cls,name,bases,attrs)
@@ -100,22 +126,22 @@ class ModelMetaclass(type):
             if isinstance(value,Field):
                 if not value.name:
                     value.name = key
-                logging.info('Found mapping: %s ==> %s' % (key,value))
+                logging.info('<class:%s>Found mapping: %s ==> %s.' % (name,key,value))
                 #拥有主键
                 if value.primary_key:
                     #是否已经检测到了主键
                     if primary_key:
                        raise TypeError('Cannot define more than 1 primary key in class %s' % name)
                     if value.updatable:
-                       logging.warning('NOTE: change primary key to non-updatable.')
+                       logging.warning('<class:%s> change primary key to non-updatable.' % name)
                        value.updatable = False
                     if value.nullable:
-                       logging.warning('NOTE: change primary key to non-nullable.')
+                       logging.warning('<class:%s> change primary key to non-nullable.' % name)
                        value.nullable = False
                     primary_key = value
                 mappings[key] = value
         if not primary_key:
-            raise TypeErrot('Primary key not defined in class: %s' % name)
+            raise TypeError('Primary key not defined in class: %s' % name)
         #从类属性中删除，避免访问时出现冲突
         for key in mappings.iterkeys():
             attrs.pop(key)
@@ -140,7 +166,6 @@ class Model(dict):
             raise AttributeError(r"'Dict' object has no attribute %s" % key)
     def __setattr__(self,key,value):
         self[key]=value
-
     @classmethod
     def get(cls,pk):
         item = db.select_one('select * from `%s` where %s=?' % (cls.__table__,cls.primary_key__.name), pk)
@@ -161,7 +186,7 @@ class Model(dict):
     def count_all(cls):
         return db.select_int('select count (%s) from `%s`' % (cls.__primary_key__.name,cls.__table))
     @classmethod
-    def cont_by(cls,where,*args):
+    def conut_by(cls,where,*args):
         return db.select_int('select count (%s) form `%s` %s' % (cls.__primary_key.name,cls.__table__,where), *args)
     def update(self):
         self.pre_update and self.pre_update()
