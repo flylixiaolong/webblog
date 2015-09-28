@@ -2,18 +2,17 @@
 #-*- coding:utf-8 -*-
 
 import logging
-logging.basicConfig(format='%(levelname)s:%(message)s')
 import time
 import db
 
 class Field(object):
     '''
 
-    >>> testfield=Field(name='lixiaolong',default='test',primary_key=True,dd1='bigint')
+    >>> testfield=Field(name='lixiaolong',default='test',primary_key=True,ddl='bigint')
     >>> print testfield.default
     test
     >>> print testfield
-    <Field:lixiaolong,,default(test),UI>
+    <Field:lixiaolong,bigint,default(test),NUI>
     '''
     _count = 0
     def __init__(self, **kw):
@@ -223,5 +222,8 @@ class Model(dict):
         return self
 
 if __name__=='__main__':
+    import logging
+    logging.basicConfig(format='%(levelname)s:%(message)s')
     import doctest
+    
     doctest.testmod()
