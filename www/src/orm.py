@@ -9,11 +9,11 @@ import db
 class Field(object):
     '''
 
-    >>> testfield=Field(name='lixiaolong',default='test',primary_key=True,dd1='bigint')
+    >>> testfield=Field(name='lixiaolong',default='test',primary_key=True,ddl='bigint')
     >>> print testfield.default
     test
     >>> print testfield
-    <Field:lixiaolong,,default(test),UI>
+    <Field:lixiaolong,bigint,default(test),NUI>
     '''
     _count = 0
     def __init__(self, **kw):
