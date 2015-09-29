@@ -1,7 +1,11 @@
 #!/usr/bin/env python
 #-*- coding:utf-8 -*-
 
+import logging
+logging.basicConfig(level='INFO')
 import threading
+from datetime import datetime, timedelta, tzinfo
+import re
 
 ctx = threading.local()
 
@@ -46,6 +50,50 @@ class Dict(dict):
     def __setattr__(self, key, value):
         self[key] = value
 
+_RE_TZ = re.compile('^([\+|\-])(\d{1,2})\:(\d{1,2})$')
+class UTC(tzinfo):
+    '''
+    This is the tzinfo subclass to transition times to local time zone.
+
+    >>> utc1 = UTC('+08:00')
+    >>> utc1.tzname()
+    >>> utc1.dst(None)
+    >>> utc1.utcoffset(None)
+    >>> utc0 = UTC('+00:00')
+    >>> utc0.tzname()
+
+    '''
+    def __init__(self, utc='+00:00'):
+        utc = utc.strip().upper()
+        mt   = _RE_TZ.match(utc)
+        if mt:
+            minus = mt.group(1)=='-'
+            h = int(mt.group(2))
+            m = int(mt.group(3))
+            if minus:
+                h, m = (-h), (-m)
+            self._utcoffset = timedelta(hours=h, minutes=m)
+            self._tzname = 'UTC%s' % utc
+        else:
+            raise ValueError('bad utc time zone: %s' % utc)
+    def utcoffset(self, dt):
+        return self._utcoffset+self.dst(dt)
+    def dst(self,dt):
+        # Code to set dston and dstoff to the time zone's DST
+        # transition times based on the input dt.year, and expressed
+        # in standard local time.  Then
+        # if dston <= dt.replace(tzinfo=None) < dstoff:
+        #     return timedelta(hours=1)
+        # else:
+        #     return timedelta(0)
+        return timedelta(0)
+    def tzname(self):
+        return self._tzname
+    def __str__(self):
+        return "UTC tzinfo object (%s)" % self._tzname
+    __repr__=__str__
+        
+        
 class HttpError(Exception):
     pass
 
@@ -113,8 +161,10 @@ class WSGIApplication(object):
         server = make_server(host,port,self.get_wsgi_application())
         server.serve_forever()
         
- wsgi = WSGIApplication()
+wsgi = WSGIApplication()
 if __name__ == '__main__':
+    import doctest
+    doctest.testmod()
     wsgi.run()
 else:
     application = wsgi.get_wsgi_application()       
