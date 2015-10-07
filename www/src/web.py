@@ -369,13 +369,16 @@ def _to_str(s):
         return s.encode('utf-8')
     return str(s)
 
-def _to_unicode(s, encoding='utf-8'):
+def _to_unicode(s, decoding='utf-8'):
     '''
     Convert to unicode.
     >>> _to_unicode('\xe4\xb8\xad\xe6\x96\x87') == u'\u4e2d\u6587'
     True
     '''
-    return s.decode('utf-8')
+    if isinstance(s,unicode)
+        return s
+    else:
+        return s.decode(decoding)
 
 def _quote(s, encoding='utf-8'):
     '''
@@ -473,7 +476,7 @@ def _build_regex(path):
 
 class Route(object):
     '''
-    A Route object is a callabel object.
+    A Route object is a callable object.
     '''
     def __init__(self, func):
         self.path = func.__web_route__
@@ -487,7 +490,7 @@ class Route(object):
     def match(self,url):
         m = self.route.match(url)
         #m not None
-        if m:
+        if m not None:
             return m.groups()
         return None
     def __call__(self,*args):
@@ -505,9 +508,6 @@ def _static_file_generator(fpath):
             yield block
             block = f.read(BLOCK_SIZE)
 
-#####################################################
-#####################################################
-#####################################################
 class StaticFileRoute(object):
     def __init__(self, arg):
         self.method = 'GET'
@@ -522,10 +522,12 @@ class StaticFileRoute(object):
         if not os.path.isfile(fpath):
             raise notfound()
         fext = os.path.splitext(fpath)[1]
+        #mimetypes.types_map是一个dict所以可以用get方法获取，当获取不到时默认为‘application/octet-stream’类型
         ctx.response.content_type = mimetypes.types_map.get(fext.lower(), 'application/octet-stream')
         return _static_file_generator(fpath)
 
 def favicon_handler():
+    #网站图标
     return static_file_handler('/favicon.ico')
 
 class MultipartFile(object):
