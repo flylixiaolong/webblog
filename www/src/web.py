@@ -5,7 +5,7 @@ import logging
 logging.basicConfig(level='INFO')
 import threading
 from datetime import datetime, timedelta, tzinfo
-import re，cgi
+import re, cgi,urllib
 
 ctx = threading.local()
 
@@ -257,7 +257,7 @@ class RedirectError(HttpError):
     >>> e = RedirectError(302,'http://www.apple.com/')
     >>> e.status
     '302 Found'
-    >>> e.Location
+    >>> e.location
     'http://www.apple.com/'
     '''
     def __init__(self, code, location):
@@ -375,7 +375,7 @@ def _to_unicode(s, decoding='utf-8'):
     >>> _to_unicode('\xe4\xb8\xad\xe6\x96\x87') == u'\u4e2d\u6587'
     True
     '''
-    if isinstance(s,unicode)
+    if isinstance(s,unicode):
         return s
     else:
         return s.decode(decoding)
@@ -445,7 +445,7 @@ def post(path):
 #分割路径的正则表达式，注意括号中的内容不会被剔除，而是放入一个组中
 _RE_ROUTE = re.compile(r'(\:[a-zA-Z_]\w*)')
 def _build_regex(path):
-     r'''
+    r'''
     Convert route path to regex.
     >>> _build_regex('/path/to/:file')
     '^\\/path\\/to\\/(?P<file>[^\\/]+)$'
@@ -461,7 +461,7 @@ def _build_regex(path):
         if is_var:
             var_name = v[1:]
             var_list.append(var_name)
-            var_list.append(r'(?P<%s>[^\/]+)' % var_name)
+            re_list.append(r'(?P<%s>[^\/]+)' % var_name)
         else:
             s = ''
             for ch in v:
@@ -490,7 +490,7 @@ class Route(object):
     def match(self,url):
         m = self.route.match(url)
         #m not None
-        if m not None:
+        if m is not None:
             return m.groups()
         return None
     def __call__(self,*args):
@@ -516,7 +516,7 @@ class StaticFileRoute(object):
     def match(self,url):
         if url.startwith('/static/'):
             return (url[1:],)
-        reurn None
+        return None
     def __call__(self, *args):
         fpath = os.path.join(ctx.application.document_root, args[0])
         if not os.path.isfile(fpath):
@@ -555,12 +555,14 @@ class Request(object):
                 return MultipartFile(item)
             return _to_unicode(item.value)
         #cgi是通用网关接口
+        #help(cgi.FieldStorage)
+        #http://blog.csdn.net/five3/article/details/7181521
         fs = cgi.FieldStorage(fp=self._environ['wsgi.input'], environ=self._environ, keep_blank_values=True)
         inputs = dict()
         for key in fs:
             inputs[key] = _convert(fs[key])
         return inputs
-     def _get_raw_input(self):
+    def _get_raw_input(self):
         '''
         Get raw input as dict containing values as unicode, list or MultipartFile.
         '''
@@ -571,6 +573,29 @@ class Request(object):
         '''
         Get input parameter value. If the specified key has multiple value, the first one is returned.
         If the specified key is not exist, then raise KeyError.
+
+        multipart/form-data
+        """
+        ------WebKitFormBoundaryQQ3J8kPsjFpTmqNz
+        Content-Disposition: form-data; name="name"
+
+        Scofield
+        ------WebKitFormBoundaryQQ3J8kPsjFpTmqNz
+        Content-Disposition: form-data; name="name"
+
+        Lincoln
+        ------WebKitFormBoundaryQQ3J8kPsjFpTmqNz
+        Content-Disposition: form-data; name="file"; filename="test.txt"
+        Content-Type: text/plain
+
+        just a test
+        ------WebKitFormBoundaryQQ3J8kPsjFpTmqNz
+        Content-Disposition: form-data; name="id"
+
+        4008009001
+        ------WebKitFormBoundaryQQ3J8kPsjFpTmqNz--
+
+        """
         >>> from StringIO import StringIO
         >>> r = Request({'REQUEST_METHOD':'POST', 'wsgi.input':StringIO('a=1&b=M%20M&c=ABC&c=XYZ&e=')})
         >>> r['a']
@@ -627,10 +652,12 @@ class Request(object):
         Traceback (most recent call last):
         ...
         KeyError: 'empty'
+        >>> r.get('d', u'100')
+        u'100'
         '''
         r = self._get_raw_input()[key]
         if isinstance(r, list):
-            return r[:]
+            return r
         return [r]
     def input(self, **kw):
         '''
@@ -646,10 +673,6 @@ class Request(object):
         u'M M'
         >>> i.c
         u'ABC'
-        >>> i.x
-        2008
-        >>> i.get('d', u'100')
-        u'100'
         >>> i.x
         2008
         '''
@@ -1443,6 +1466,7 @@ class WSGIApplication(object):
         return wsgi
 
 if __name__=='__main__':
+    import sys
     sys.path.append('.')
     import doctest
     doctest.testmod()
