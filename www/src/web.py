@@ -4,8 +4,8 @@
 import logging
 logging.basicConfig(level='INFO')
 import threading
-from datetime import datetime, timedelta, tzinfo
-import re, cgi,urllib
+from datetime import datetime, timedelta, tzinfo,date
+import os, re, cgi, urllib
 
 ctx = threading.local()
 
@@ -857,12 +857,11 @@ class Response(object):
 
         >>> r = Response()
         >>> r.headers
-        [('Content-Type', 'text/html; charset=utf-8'), ('X-Powered-By', 'transwarp/1.0')]
-        >>> r.set_cookie('s1', 'ok', 3600)
+        [('Content-Type', 'text/html; charset=utf-8'), ('X-Powered-By', 'src/1.0')]
         >>> r.headers
-        [('Content-Type', 'text/html; charset=utf-8'), ('Set-Cookie', 's1=ok; Max-Age=3600; Path=/; HttpOnly'), ('X-Powered-By', 'transwarp/1.0')]
+        [('Content-Type', 'text/html; charset=utf-8'), ('X-Powered-By', 'src/1.0')]
         '''
-        L = [(_RESPONSE_HEADER_DICT.get(k, k), v) for k, v in self._headers.iteritems()]
+        L = [(_RESPONSE_HEADER_DICT.get(k,k), v) for k, v in self._headers.iteritems()]
         if hasattr(self, '_cookies'):
             for v in self._cookies.itervalues():
                 L.append(('Set-Cookie', v))
@@ -899,6 +898,7 @@ class Response(object):
         if not key in _RESPONSE_HEADER_DICT:
             key = name
         if key in self._headers:
+            #same as self._headers.pop(key)
             del self._headers[key]
 
     def set_header(self, name, value):
@@ -1001,7 +1001,7 @@ class Response(object):
         >>> r.set_cookie('company', r'Example="Limited"', expires=1342274794.123, path='/sub/')
         >>> r._cookies
         {'company': 'company=Example%3D%22Limited%22; Expires=Sat, 14-Jul-2012 14:06:34 GMT; Path=/sub/; HttpOnly'}
-        >>> dt = datetime.datetime(2012, 7, 14, 22, 6, 34, tzinfo=UTC('+8:00'))
+        >>> dt = datetime(2012, 7, 14, 22, 6, 34, tzinfo=UTC('+8:00'))
         >>> r.set_cookie('company', 'Expires', expires=dt)
         >>> r._cookies
         {'company': 'company=Expires; Expires=Sat, 14-Jul-2012 14:06:34 GMT; Path=/; HttpOnly'}
@@ -1011,8 +1011,8 @@ class Response(object):
         L = ['%s=%s' % (_quote(name), _quote(value))]
         if expires is not None:
             if isinstance(expires, (float, int, long)):
-                L.append('Expires=%s' % datetime.datetime.fromtimestamp(expires, UTC_0).strftime('%a, %d-%b-%Y %H:%M:%S GMT'))
-            if isinstance(expires, (datetime.date, datetime.datetime)):
+                L.append('Expires=%s' % datetime.fromtimestamp(expires, UTC_0).strftime('%a, %d-%b-%Y %H:%M:%S GMT'))
+            if isinstance(expires, (date, datetime)):
                 L.append('Expires=%s' % expires.astimezone(UTC_0).strftime('%a, %d-%b-%Y %H:%M:%S GMT'))
         elif isinstance(max_age, (int, long)):
             L.append('Max-Age=%d' % max_age)
@@ -1155,7 +1155,7 @@ class Jinja2TemplateEngine(TemplateEngine):
     >>> templ_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'test')
     >>> engine = Jinja2TemplateEngine(templ_path)
     >>> engine.add_filter('datetime', lambda dt: dt.strftime('%Y-%m-%d %H:%M:%S'))
-    >>> engine('jinja2-test.html', dict(name='Michael', posted_at=datetime.datetime(2014, 6, 1, 10, 11, 12)))
+    >>> engine('jinja2-test.html', dict(name='Michael', posted_at=datetime(2014, 6, 1, 10, 11, 12)))
     '<p>Hello, Michael.</p><span>2014-06-01 10:11:12</span>'
     '''
 
