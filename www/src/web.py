@@ -5,7 +5,7 @@ import logging
 logging.basicConfig(format='%(levelname)s:%(message)s',level='INFO')
 import threading
 from datetime import datetime, timedelta, tzinfo,date
-import os, re, cgi, urllib, functools
+import os, re, cgi, urllib, functools, types
 
 ctx = threading.local()
 
@@ -526,6 +526,7 @@ class StaticFileRoute(object):
         ctx.response.content_type = mimetypes.types_map.get(fext.lower(), 'application/octet-stream')
         return _static_file_generator(fpath)
 
+###################################################################################################
 def favicon_handler():
     #网站图标
     return static_file_handler('/favicon.ico')
@@ -1182,6 +1183,7 @@ class Jinja2TemplateEngine(TemplateEngine):
     def __call__(self, path, model):
         return self._env.get_template(path).render(**model).encode('utf-8')
 
+###################################################################################################
 def _default_error_handler(e, start_response, is_debug):
     if isinstance(e, HttpError):
         logging.info('HttpError: %s' % e.status)
@@ -1309,6 +1311,7 @@ def _build_interceptor_chain(last_fn, *interceptors):
     fn = last_fn
     for f in L:
         fn = _build_interceptor_fn(f, fn)
+    #fn() <= > f1(f2(f3(f4())))
     return fn
 
 def _load_module(module_name):
@@ -1369,6 +1372,7 @@ class WSGIApplication(object):
 
     def add_module(self, mod):
         self._check_not_running()
+        #os.__name__=='os'
         m = mod if type(mod)==types.ModuleType else _load_module(mod)
         logging.info('Add module: %s' % m.__name__)
         for name in dir(m):
@@ -1376,6 +1380,7 @@ class WSGIApplication(object):
             if callable(fn) and hasattr(fn, '__web_route__') and hasattr(fn, '__web_method__'):
                 self.add_url(fn)
 
+################################################################################################
     def add_url(self, func):
         self._check_not_running()
         route = Route(func)
