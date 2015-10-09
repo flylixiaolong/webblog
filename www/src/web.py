@@ -2,10 +2,10 @@
 #-*- coding:utf-8 -*-
 
 import logging
-logging.basicConfig(level='INFO')
+logging.basicConfig(format='%(levelname)s:%(message)s',level='INFO')
 import threading
 from datetime import datetime, timedelta, tzinfo,date
-import os, re, cgi, urllib
+import os, re, cgi, urllib, functools
 
 ctx = threading.local()
 
@@ -1151,6 +1151,8 @@ class Jinja2TemplateEngine(TemplateEngine):
 
     '''
     Render using jinja2 template engine.
+    Reference:
+    1、http://www.pythonfan.org/docs/python/jinja2/zh/index.html
 
     >>> templ_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'test')
     >>> engine = Jinja2TemplateEngine(templ_path)
@@ -1162,12 +1164,21 @@ class Jinja2TemplateEngine(TemplateEngine):
     def __init__(self, templ_dir, **kw):
         from jinja2 import Environment, FileSystemLoader
         if not 'autoescape' in kw:
+            u'''
+            If set to true the XML/HTML autoescaping feature is enabled by default. 
+            #如果设置为True,则自动转义功能启用
+            For more details about auto escaping see Markup. As of Jinja 2.4 this can 
+            also be a callable that is passed the template name and has to return 
+            True or False depending on autoescape should be enabled by default.
+            #根据转义功能是否启用返回True或者False。
+            '''
             kw['autoescape'] = True
         self._env = Environment(loader=FileSystemLoader(templ_dir), **kw)
 
+    #增加过滤器
     def add_filter(self, name, fn_filter):
         self._env.filters[name] = fn_filter
-
+    #是一个可用对象，返回HTML文档
     def __call__(self, path, model):
         return self._env.get_template(path).render(**model).encode('utf-8')
 
@@ -1178,7 +1189,7 @@ def _default_error_handler(e, start_response, is_debug):
         headers.append(('Content-Type', 'text/html'))
         start_response(e.status, headers)
         return ('<html><body><h1>%s</h1></body></html>' % e.status)
-    logging.exception('Exception:')
+    logging.exception("Exception: %s" % e.message)
     start_response('500 Internal Server Error', [('Content-Type', 'text/html'), _HEADER_X_POWERED_BY])
     if is_debug:
         return _debug()
@@ -1209,7 +1220,7 @@ def view(path):
         def _wrapper(*args, **kw):
             r = func(*args, **kw)
             if isinstance(r, dict):
-                logging.info('return Template')
+                logging.info('Return : Template')
                 return Template(path, **r)
             raise ValueError('Expect return a dict when using @view() decorator.')
         return _wrapper
@@ -1220,9 +1231,11 @@ _RE_INTERCEPTROR_ENDS_WITH = re.compile(r'^\*([^\*\?]+)$')
 
 def _build_pattern_fn(pattern):
     m = _RE_INTERCEPTROR_STARTS_WITH.match(pattern)
+    #if start like : abc*
     if m:
         return lambda p: p.startswith(m.group(1))
     m = _RE_INTERCEPTROR_ENDS_WITH.match(pattern)
+    #end like :*abc
     if m:
         return lambda p: p.endswith(m.group(1))
     raise ValueError('Invalid pattern definition in interceptor.')

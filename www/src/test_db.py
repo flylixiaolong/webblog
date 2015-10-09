@@ -2,7 +2,7 @@
 #-*- coding:utf-8 -*-
 
 import logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(format='%(levelname)s:%(message)s',level='INFO')
 
 from model import User,Blog,Comment
 import db
