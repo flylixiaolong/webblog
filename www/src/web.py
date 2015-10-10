@@ -405,7 +405,7 @@ def get(path):
     A @get decorator.
     @get('/:id')
     def index(id):
-        pass
+    pass
     >>> @get('/test/:id')
     ... def test():
     ...     return 'ok'
@@ -421,7 +421,8 @@ def get(path):
         func.__web_route__ = path
         func.__web_method__ = 'GET'
         return func
- 
+    return _decorator
+
 def post(path):
     '''
     A @post decorator.
@@ -483,7 +484,7 @@ class Route(object):
         self.method = func.__web_method__
         #如果有则为假，如果没有则为真
         self.is_static = _RE_ROUTE.search(self.path) is None
-        #如果有
+        #如果有如果是post
         if not self.is_static:
             self.route = re.compile(_build_regex(self.path))
         self.func = func
@@ -1267,6 +1268,7 @@ def _build_interceptor_chain(last_fn, *interceptors):
     '''
     Build interceptor chain.
 
+    >>> is_admin = True
     >>> def target():
     ...     print 'target'
     ...     return 123
@@ -1285,7 +1287,10 @@ def _build_interceptor_chain(last_fn, *interceptors):
     ... def f3(next):
     ...     print 'before f3()'
     ...     try:
-    ...         return next()
+    ...         if is_admin:
+    ...             return next()
+    ...         else:
+    ...             raise seeother('http://www.baidu.com/other')
     ...     finally:
     ...         print 'after f3()'
     >>> chain = _build_interceptor_chain(target, f1, f2, f3)
@@ -1305,6 +1310,11 @@ def _build_interceptor_chain(last_fn, *interceptors):
     target
     after f3()
     123
+    >>> is_admin = False
+    >>> chain()
+    Traceback (most recent call last):
+        ...
+    RedirectError: 303 See Other, http://www.baidu.com/other
     '''
     L = list(interceptors)
     L.reverse()
@@ -1409,19 +1419,27 @@ class WSGIApplication(object):
 
     def get_wsgi_application(self, debug=False):
         self._check_not_running()
+        #如果是调试模式
         if debug:
             self._get_dynamic.append(StaticFileRoute())
         self._running = True
 
         _application = Dict(document_root=self._document_root)
-
+       #return html
         def fn_route():
             request_method = ctx.request.request_method
             path_info = ctx.request.path_info
             if request_method=='GET':
+                #return route with path_info
+                #fn is Route object
                 fn = self._get_static.get(path_info, None)
+                #if path_info is static
+                #route(fn) is callable
                 if fn:
+                    #fn.func() is the url maping function calls results
                     return fn()
+                # if path_info is dynamic, finding the route in self._get_dynamic which mach the path_info
+                # fn is a Route object with match function path_info is dynamic so fn's path is regular
                 for fn in self._get_dynamic:
                     args = fn.match(path_info)
                     if args:
@@ -1437,7 +1455,7 @@ class WSGIApplication(object):
                         return fn(*args)
                 raise notfound()
             raise badrequest()
-
+        #创建拦截器链
         fn_exec = _build_interceptor_chain(fn_route, *self._interceptors)
 
         def wsgi(env, start_response):
@@ -1447,11 +1465,13 @@ class WSGIApplication(object):
             try:
                 r = fn_exec()
                 if isinstance(r, Template):
+                    #获取模板，并且render(r.name)
                     r = self._template_engine(r.template_name, r.model)
                 if isinstance(r, unicode):
                     r = r.encode('utf-8')
                 if r is None:
                     r = []
+                #正常响应请求
                 start_response(response.status, response.headers)
                 return r
             except RedirectError, e:
@@ -1463,6 +1483,7 @@ class WSGIApplication(object):
                 return ['<html><body><h1>', e.status, '</h1></body></html>']
             except Exception, e:
                 logging.exception(e)
+                #非调试模式，时发送错误到客户端，不通过终端打印异常，否则打印异常并返回错误到客户端
                 if not debug:
                     start_response('500 Internal Server Error', [])
                     return ['<html><body><h1>500 Internal Server Error</h1></body></html>']
