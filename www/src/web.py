@@ -5,7 +5,11 @@ import logging
 logging.basicConfig(format='%(levelname)s:%(message)s',level='INFO')
 import threading
 from datetime import datetime, timedelta, tzinfo,date
-import os, re, cgi, urllib, functools, types
+import os, re, cgi, urllib, functools, types, sys, traceback
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from StringIO import StringIO
 
 ctx = threading.local()
 
@@ -510,12 +514,12 @@ def _static_file_generator(fpath):
             block = f.read(BLOCK_SIZE)
 
 class StaticFileRoute(object):
-    def __init__(self, arg):
+    def __init__(self):
         self.method = 'GET'
         self.is_static = False
         self.route = re.compile('^/static/(.+)$')
     def match(self,url):
-        if url.startwith('/static/'):
+        if url.startswith('/static/'):
             return (url[1:],)
         return None
     def __call__(self, *args):
@@ -1385,6 +1389,7 @@ class WSGIApplication(object):
         #os.__name__=='os'
         m = mod if type(mod)==types.ModuleType else _load_module(mod)
         logging.info('Add module: %s' % m.__name__)
+        print dir(m)
         for name in dir(m):
             fn = getattr(m, name)
             if callable(fn) and hasattr(fn, '__web_route__') and hasattr(fn, '__web_method__'):
@@ -1433,6 +1438,8 @@ class WSGIApplication(object):
                 #return route with path_info
                 #fn is Route object
                 fn = self._get_static.get(path_info, None)
+                print self._get_static
+                print path_info
                 #if path_info is static
                 #route(fn) is callable
                 if fn:

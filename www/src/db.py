@@ -82,6 +82,7 @@ def create_engine(user,password,database,host='127.0.0.1',port=3306,**kw):
     '''
     import mysql.connector
     global engine
+    engine = None
     if engine is not None:
         raise DBError ('Engine is already initialized.')
     params = dict(user=user,password=password,database=database,host=host,port=port)
