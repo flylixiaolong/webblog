@@ -5,7 +5,7 @@ import logging
 logging.basicConfig(format='%(levelname)s:%(message)s',level='INFO')
 import threading
 from datetime import datetime, timedelta, tzinfo,date
-import os, re, cgi, urllib, functools, types, sys, traceback
+import os, re, cgi, urllib, functools, types, sys, traceback, mimetypes
 try:
     from cStringIO import StringIO
 except ImportError:

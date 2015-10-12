@@ -4,7 +4,7 @@
 from src.web import get,view
 from src.model import User, Blog, Comment
 
-@view('test_users.html')
+@view('__base__.html')
 @get('/')
 def test_users():
     users = User.find_all()
